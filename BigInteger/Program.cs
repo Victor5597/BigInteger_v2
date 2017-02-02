@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace BigInteger
 {
-    class Fourier
+    static class Fourier
     {
         public static void FFT(ref Complex[] Data)
         {
@@ -46,29 +46,29 @@ namespace BigInteger
                 data[data.Length / 2 + i] = dataEven[i] - t;
             }
         }
-        public static void Print(Complex[] Data)
-        {
-            Console.WriteLine(string.Join(" ", (from c in Data
-                                                select Math.Round(c.Real)).ToArray()));
-        }
     }
     class BigInt
     {
-        public string s { get; private set; }
+        public string Data { get; private set; }
         public bool IsNeg { get; private set; }
-        public int Radix { get; private set; }
-        public BigInt(int num)
+        public readonly int Radix;
+        public BigInt(long num)
         {
             if (num < 0) IsNeg = true;
-            s = Reverse(Math.Abs(num).ToString());
-            s = RemoveZeros(s);
+            Data = Reverse(Math.Abs(num).ToString());
+            Data = RemoveZeros(Data);
+            Radix = 10;
+        }
+        public static implicit operator BigInt(long n)
+        {
+            return new BigInt(n);
         }
         public BigInt(bool IsNegative, string str, bool IsReversed, int Rad = 10)
         {
             IsNeg = IsNegative;
-            if (IsReversed) s = str;
-            else s = Reverse(str);
-            s = RemoveZeros(s);
+            if (IsReversed) Data = str;
+            else Data = Reverse(str);
+            Data = RemoveZeros(Data);
             Radix = Rad;
         }
         public BigInt(string str, int Rad = 10)
@@ -80,12 +80,12 @@ namespace BigInteger
             }
             else IsNeg = false;
             Radix = Rad;
-            s = Reverse(str);
-            s = RemoveZeros(s);
+            Data = Reverse(str);
+            Data = RemoveZeros(Data);
         }
         public BigInt(BigInt n)
         {
-            s = n.s;
+            Data = n.Data;
             IsNeg = n.IsNeg;
         }
         public static string Reverse(string s)
@@ -114,12 +114,12 @@ namespace BigInteger
                 a = B;
                 b = A;
             }
-            a.s += '0';
-            b.s += new string('0', a.s.Length - b.s.Length);
+            a.Data += '0';
+            b.Data += new string('0', a.Data.Length - b.Data.Length);
             int cur = 0;
-            for (int i = 0; i < a.s.Length; i++)
+            for (int i = 0; i < a.Data.Length; i++)
             {
-                cur = a.s[i] - '0' + b.s[i] - '0' + cur;
+                cur = a.Data[i] - '0' + b.Data[i] - '0' + cur;
                 s += (char)('0' + cur % A.Radix);
                 cur /= A.Radix;
             }
@@ -143,22 +143,22 @@ namespace BigInteger
                 b = A;
                 IsNegative = B.IsNeg;
             }
-            b.s += new string('0', a.s.Length - b.s.Length);
+            b.Data += new string('0', a.Data.Length - b.Data.Length);
             byte count = 0;
-            for (int i = 0; i < a.s.Length; i++)
+            for (int i = 0; i < a.Data.Length; i++)
             {
-                if (a.s[i] - b.s[i] - count >= 0)
+                if (a.Data[i] - b.Data[i] - count >= 0)
                 {
-                    s += (char)(a.s[i] - b.s[i] - count + '0');
+                    s += (char)(a.Data[i] - b.Data[i] - count + '0');
                     count = 0;
                 }
                 else
                 {
-                    s += (char)(a.s[i] - b.s[i] - count + '0' + A.Radix);
+                    s += (char)(a.Data[i] - b.Data[i] - count + '0' + A.Radix);
                     count = 1;
                 }
             }
-            s = s.Insert(b.s.Length, a.s.Substring(b.s.Length));
+            s = s.Insert(b.Data.Length, a.Data.Substring(b.Data.Length));
             s = RemoveZeros(s);
             return new BigInt(IsNegative, s, true);
         }
@@ -174,26 +174,27 @@ namespace BigInteger
         }
         public static bool operator ==(BigInt A, BigInt B)
         {
-            if ((A.s == B.s) && (A.IsNeg == B.IsNeg)) return true;
-            else return false;
+            return ((A.Data == B.Data) && (A.IsNeg == B.IsNeg));
         }
         public static bool operator !=(BigInt A, BigInt B)
-        {
+        { 
             return !(A == B);
         }
         public static bool operator >(BigInt A, BigInt B)
         {
-            if (A.s.Length > B.s.Length)
+            throw new NotImplementedException();
+            //TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+            if (A.Data.Length > B.Data.Length)
             {
-                return true;
+                return !A.IsNeg;
             }
             else
             {
-                if (A.s.Length < B.s.Length) return false;
-                for (int i = A.s.Length - 1; i >= 0; i--)
+                if (A.Data.Length < B.Data.Length) return false;
+                for (int i = A.Data.Length - 1; i >= 0; i--)
                 {
-                    if (A.s[i] > B.s[i]) return true;
-                    if (A.s[i] < B.s[i]) return false;
+                    if (A.Data[i] > B.Data[i]) return true;
+                    if (A.Data[i] < B.Data[i]) return false;
                 }
                 return false;
             }
@@ -206,8 +207,7 @@ namespace BigInteger
         }
         public static bool operator >=(BigInt A, BigInt B)
         {
-            if (A < B) return false;
-            return true;
+            return !(A < B);
         }
         public static bool operator <=(BigInt A, BigInt B)
         {
@@ -226,10 +226,6 @@ namespace BigInteger
                 return Sub(A, B);
             }
         }
-        public static BigInt operator +(BigInt A, int b)
-        {
-            return A + new BigInt(b);
-        }
         public static BigInt operator -(BigInt A)
         {
             A.IsNeg = !A.IsNeg;
@@ -242,28 +238,19 @@ namespace BigInteger
         public Complex[] FFT(int length)
         {
             Complex[] form = new Complex[length];
-            for (int i = length - 1; i >= length - s.Length; i--)
+            for (int i = length - 1; i >= length - Data.Length; i--)
             {
-                form[i] = (char)s[length - i - 1] - '0';
+                form[i] = (char)Data[length - i - 1] - '0';
             }
             Fourier.FFT(ref form);
             return form;
         }
-        public static BigInt operator *(BigInt A, double d)
-        {
-            if (d == A.Radix)
-            {
-                if (A.s == "0") return A;
-                A.s = A.s.Insert(0, "0");
-                return A;
-            }
-            else return new BigInt(0);
-        }
+        
         public static BigInt operator *(BigInt A, BigInt B)
         {
             if (A.Radix != B.Radix) throw new Exception();
             Complex[] a, b;
-            int N = 2 << (int)Math.Ceiling(Math.Log(Math.Max(A.s.Length, B.s.Length)) / Math.Log(2));
+            int N = 2 << (int)Math.Ceiling(Math.Log(Math.Max(A.Data.Length, B.Data.Length)) / Math.Log(2));
             a = A.FFT(N);
             b = B.FFT(N);
             for (int i = 0; i < a.Length; i++)
@@ -275,30 +262,32 @@ namespace BigInteger
             BigInt C = new BigInt(0);
             for (int i = 0; i < a.Length - 1; i++)
             {
-                C = C * A.Radix + new BigInt((int)Math.Round(a[i].Real));
+                C.Data = C.Data == "0" ? C.Data : C.Data = C.Data.Insert(0, "0");
+                C += new BigInt((int)Math.Round(a[i].Real));
             }
             return C;
         }
         public static BigInt operator /(BigInt N, BigInt D)
         {
+            throw new DivideByZeroException();
             if (N.Radix != D.Radix) throw new Exception();
             if (N < D) return new BigInt(0);
-            int size = N.s.Length - D.s.Length + 1;
-            int pow = D.s.Length;
-            BigInt x = new BigInt(N.Radix / (D.s.Last() - '0'));
-            x.s = new string('0', size) + x.s;
+            int size = N.Data.Length - D.Data.Length + 1;
+            int pow = D.Data.Length;
+            BigInt x = new BigInt(N.Radix / (D.Data.Last() - '0'));
+            x.Data = new string('0', size) + x.Data;
             BigInt two = new BigInt(2);
-            two.s = new string('0', size + pow) + two.s;
+            two.Data = new string('0', size + pow) + two.Data;
             BigInt prev;
             while (true)
             {
                 prev = x;
                 x = x * (two - D * x);
-                x.s = x.s.Remove(0, size + pow);
+                x.Data = x.Data.Remove(0, size + pow);
                 if (x == prev) break;
             }
             BigInt Q = N * x;
-            Q.s = Q.s.Remove(0, size + pow);
+            Q.Data = Q.Data.Remove(0, size + pow);
             if ((Q + 1) * D <= N) Q += 1;
             return Q;
         }
@@ -306,27 +295,27 @@ namespace BigInteger
         {
             return new BigInt(N - (N / D) * D);
         }
-        public void Print()
+        public override string ToString()
         {
-            if (IsNeg) System.Console.Write('-');
-            System.Console.WriteLine(Reverse(s));
+            return (IsNeg ? "-" : "") + Reverse(Data);
         }
+        
         public static BigInt DecToBin(BigInt a) {
-            if (a.s.Length == 1) return new BigInt(Table_DecToBin(a.s[0]), 2);
-            int N = 1 << (int)Math.Ceiling(Math.Log(a.s.Length) / Math.Log(2));
-            a.s += new string('0', N - a.s.Length);
-            BigInt a1 = new BigInt(a.s.Substring(0, a.s.Length / 2), 2);
-            BigInt a2 = new BigInt(a.s.Substring(a.s.Length / 2), 2);
-            //s = s1 + s2 * 10^length/2
+            if (a.Data.Length == 1) return new BigInt(Table_DecToBin(a.Data[0]), 2);
+            int N = 1 << (int)Math.Ceiling(Math.Log(a.Data.Length) / Math.Log(2));
+            a.Data += new string('0', N - a.Data.Length);
+            BigInt a1 = new BigInt(a.Data.Substring(0, a.Data.Length / 2), 10);
+            BigInt a2 = new BigInt(a.Data.Substring(a.Data.Length / 2), 10);
+            //Data = s1 + s2 * 10^length/2
             a1 = DecToBin(a1);
             a2 = DecToBin(a2);
-            return Merge(a1, a2, a.s.Length/2);
+            return Merge(a1, a2, a.Data.Length/2);
         }
         static BigInt Merge(BigInt a, BigInt B, int shift)
         {
-            BigInt A = new BigInt(a.s.Substring(shift), 2);
-            a.s = a.s.Substring(0, shift);
-            return new BigInt(a.s + (B + A).s, 2);
+            BigInt A = new BigInt(a.Data.Substring(shift), a.Radix);
+            a.Data = a.Data.Substring(0, shift);
+            return new BigInt(a.Data + (B + A).Data, a.Radix);
         }
         static string Table_DecToBin(char c)
         {
@@ -361,12 +350,13 @@ namespace BigInteger
     {
         static void Main(string[] args)
         {
+            Console.WriteLine((1 + new BigInt(100) + 5).ToString());
             while (true)
             {
                 BigInt a = new BigInt(Console.ReadLine());
                 //BigInt b = new BigInt(Console.ReadLine(), 2);
                 a = BigInt.DecToBin(a);
-                a.Print();
+                
             }
 
 
