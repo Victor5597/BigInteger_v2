@@ -12,12 +12,14 @@ namespace BigInteger
         static void Main(string[] args)
         {
             List<BigInt> l = new List<BigInt>();
+            l.Add(new BigInt(4));
+            l.Add(new BigInt(2));
             l.Add(new BigInt(3));
-            l.Add(new BigInt(1));
-            l.Add(new BigInt(5));
-            l.Sort();
-            Matrix3x2 d = new Matrix3x2(1, 0, 0, 1, 1, 1);
-            Console.WriteLine(d.GetDeterminant());
+            l = TimSort<BigInt>.TSort(l).ToList();
+            for (int i = 0; i < l.Count; i++)
+            {
+                Console.Write(l[i].ToString() + " ");
+            }
             while (true)
             {
                 //Console.WriteLine(BigInt.DecToBin(new BigInt(Console.ReadLine(), 10)).ToString());
