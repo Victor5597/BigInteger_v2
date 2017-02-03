@@ -52,12 +52,13 @@ namespace BigInteger
         public string Data { get; private set; }
         public bool IsNeg { get; private set; }
         public readonly int Radix;
-        public BigInt(long num)
+        static string[] table;
+        public BigInt(long num, int Rad = 10)
         {
             if (num < 0) IsNeg = true;
             Data = Reverse(Math.Abs(num).ToString());
             Data = RemoveZeros(Data);
-            Radix = 10;
+            Radix = Rad;
         }
         public static implicit operator BigInt(long n)
         {
@@ -73,6 +74,7 @@ namespace BigInteger
         }
         public BigInt(string str, int Rad = 10)
         {
+            if (str == "") str += "0";
             if (str[0] == '-')
             {
                 str = str.Remove(0, 1);
@@ -87,6 +89,7 @@ namespace BigInteger
         {
             Data = n.Data;
             IsNeg = n.IsNeg;
+            Radix = n.Radix;
         }
         public static string Reverse(string s)
         {
@@ -99,8 +102,11 @@ namespace BigInteger
             while (str.Last() == '0' && str.Length > 1) str = str.Remove(str.Length - 1);
             return str;
         }
-        
-        public static BigInt Sum(BigInt A, BigInt B)
+        public BigInt Abs()
+        {
+            return (IsNeg ? -this : this);
+        }
+        static BigInt Sum(BigInt A, BigInt B)
         {
             string s = "";
             BigInt a, b;
@@ -126,12 +132,12 @@ namespace BigInteger
             s = RemoveZeros(s);
             return new BigInt(A.IsNeg, s, true, A.Radix);
         }
-        public static BigInt Sub(BigInt A, BigInt B)
+        static BigInt Sub(BigInt A, BigInt B)
         {
             BigInt a, b;
             string s = "";
             bool IsNegative;
-            if (A >= B)
+            if (A.Abs() >= B.Abs())
             {
                 a = A;
                 b = B;
@@ -160,7 +166,7 @@ namespace BigInteger
             }
             s = s.Insert(b.Data.Length, a.Data.Substring(b.Data.Length));
             s = RemoveZeros(s);
-            return new BigInt(IsNegative, s, true);
+            return new BigInt(IsNegative, s, true, A.Radix);
         }
         public override bool Equals(object obj)
         {
@@ -182,28 +188,25 @@ namespace BigInteger
         }
         public static bool operator >(BigInt A, BigInt B)
         {
-            throw new NotImplementedException();
-            //TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+            if (A.IsNeg != B.IsNeg) return !A.IsNeg;
             if (A.Data.Length > B.Data.Length)
             {
                 return !A.IsNeg;
             }
             else
             {
-                if (A.Data.Length < B.Data.Length) return false;
+                if (A.Data.Length < B.Data.Length) return A.IsNeg;
                 for (int i = A.Data.Length - 1; i >= 0; i--)
                 {
-                    if (A.Data[i] > B.Data[i]) return true;
-                    if (A.Data[i] < B.Data[i]) return false;
+                    if (A.Data[i] > B.Data[i]) return !A.IsNeg;
+                    if (A.Data[i] < B.Data[i]) return A.IsNeg;
                 }
                 return false;
             }
         }
         public static bool operator <(BigInt A, BigInt B)
         {
-            if (A > B) return false;
-            if (A == B) return false;
-            return true;
+            return !(A > B || A == B);
         }
         public static bool operator >=(BigInt A, BigInt B)
         {
@@ -211,8 +214,7 @@ namespace BigInteger
         }
         public static bool operator <=(BigInt A, BigInt B)
         {
-            if (A > B) return false;
-            return true;
+            return !(A > B);
         }
         public static BigInt operator +(BigInt A, BigInt B)
         {
@@ -228,14 +230,14 @@ namespace BigInteger
         }
         public static BigInt operator -(BigInt A)
         {
-            A.IsNeg = !A.IsNeg;
-            return A;
+            return new BigInt(!A.IsNeg, A.Data, true, A.Radix);
         }
         public static BigInt operator -(BigInt A, BigInt B)
         {
+            if (A.Radix != B.Radix) throw new Exception();
             return (A + (-B));
         }
-        public Complex[] FFT(int length)
+        Complex[] FFT(int length)
         {
             Complex[] form = new Complex[length];
             for (int i = length - 1; i >= length - Data.Length; i--)
@@ -257,26 +259,28 @@ namespace BigInteger
             {
                 a[i] *= b[i];
             }
-
             Fourier.IFFT(ref a);
-            BigInt C = new BigInt(0);
+            BigInt C = new BigInt("0", A.Radix);
             for (int i = 0; i < a.Length - 1; i++)
             {
                 C.Data = C.Data == "0" ? C.Data : C.Data = C.Data.Insert(0, "0");
-                C += new BigInt((int)Math.Round(a[i].Real));
+                C += new BigInt((int)Math.Round(a[i].Real), C.Radix);
             }
-            return C;
+            return (A.IsNeg ^ B.IsNeg) ? -C : C;
         }
         public static BigInt operator /(BigInt N, BigInt D)
         {
-            throw new DivideByZeroException();
+            if (D == 0) throw new DivideByZeroException();
             if (N.Radix != D.Radix) throw new Exception();
-            if (N < D) return new BigInt(0);
+            bool IsNegative = N.IsNeg ^ D.IsNeg;
+            N = N.Abs();
+            D = D.Abs();
+            if (N < D) return new BigInt(0, N.Radix);
             int size = N.Data.Length - D.Data.Length + 1;
             int pow = D.Data.Length;
-            BigInt x = new BigInt(N.Radix / (D.Data.Last() - '0'));
+            BigInt x = BigInt.DecToBin(N.Radix / (D.Data.Last() - '0'), N.Radix);
             x.Data = new string('0', size) + x.Data;
-            BigInt two = new BigInt(2);
+            BigInt two = BigInt.DecToBin(2, N.Radix);
             two.Data = new string('0', size + pow) + two.Data;
             BigInt prev;
             while (true)
@@ -288,75 +292,96 @@ namespace BigInteger
             }
             BigInt Q = N * x;
             Q.Data = Q.Data.Remove(0, size + pow);
-            if ((Q + 1) * D <= N) Q += 1;
-            return Q;
+            if ((Q + new BigInt(1, Q.Radix)) * D <= N) Q += new BigInt(1, Q.Radix);
+            Q.Data = RemoveZeros(Q.Data);
+            return IsNegative ? -Q : Q;
         }
         public static BigInt operator %(BigInt N, BigInt D)
         {
-            return new BigInt(N - (N / D) * D);
+            return (N - (N / D) * D);
         }
         public override string ToString()
         {
+            if (Data == "0") IsNeg = false;
             return (IsNeg ? "-" : "") + Reverse(Data);
         }
-        
-        public static BigInt DecToBin(BigInt a) {
-            if (a.Data.Length == 1) return new BigInt(Table_DecToBin(a.Data[0]), 2);
+        public static BigInt DecToBin(BigInt a)
+        {
+            BigInt.Table_DecToBin_init();
+            return BigInt.DecToBin_rec(a);
+        }
+        static BigInt DecToBin_rec(BigInt a) {
+            
+            if (a.Data.Length == 1) return new BigInt(a.IsNeg, BigInt.table[a.Data[0]- '0'], false, 2);
             int N = 1 << (int)Math.Ceiling(Math.Log(a.Data.Length) / Math.Log(2));
             a.Data += new string('0', N - a.Data.Length);
-            BigInt a1 = new BigInt(a.Data.Substring(0, a.Data.Length / 2), 10);
-            BigInt a2 = new BigInt(a.Data.Substring(a.Data.Length / 2), 10);
+            BigInt a1 = new BigInt(false ,a.Data.Substring(0, a.Data.Length / 2), true, 10);
+            BigInt a2 = new BigInt(false, a.Data.Substring(a.Data.Length / 2), true, 10);
             //Data = s1 + s2 * 10^length/2
-            a1 = DecToBin(a1);
-            a2 = DecToBin(a2);
-            return Merge(a1, a2, a.Data.Length/2);
+            a1 = DecToBin_rec(a1);
+            a2 = DecToBin_rec(a2);
+            BigInt bin = Merge(a1, a2, a.Data.Length/2);
+            return new BigInt(a.IsNeg, bin.Data, true, 2);
+        }
+        public static BigInt DecToBin(int dec, int rad)
+        {
+            string b = "";
+            if (rad == 10) b = rad.ToString();
+            else
+            {
+                while (dec != 0)
+                {
+                    b += (dec % rad).ToString();
+                    dec /= rad;
+                }
+            }
+            return new BigInt(dec < 0, b, true, rad);
         }
         static BigInt Merge(BigInt a, BigInt B, int shift)
         {
-            BigInt A = new BigInt(a.Data.Substring(shift), a.Radix);
-            a.Data = a.Data.Substring(0, shift);
-            return new BigInt(a.Data + (B + A).Data, a.Radix);
-        }
-        static string Table_DecToBin(char c)
-        {
-            switch (c)
+            /*BigInt pow = new BigInt("1", 2);
+            for (int i = 0; i < shift; i++)
             {
-                case '0':
-                    return "0";
-                case '1':
-                    return "1";
-                case '2':
-                    return "10";
-                case '3':
-                    return "11";
-                case '4':
-                    return "100";
-                case '5':
-                    return "101";
-                case '6':
-                    return "110";
-                case '7':
-                    return "111";
-                case '8':
-                    return "1000";
-                case '9':
-                    return "1001";
-                default:
-                    throw new Exception();
+                pow = pow * new BigInt("1010", 2);
+            }*/
+            return a + B * BigInt.FastPow(1010, shift, 2);
+        }
+        static public BigInt FastPow(int a, int pow, int rad)
+        {
+            BigInt A = new BigInt(a, rad);
+            BigInt b = new BigInt(1, rad);
+            BigInt map = BigInt.DecToBin(pow, 2);
+            for (int i = map.Data.Length-1; i >= 0; i--)
+            {
+                b *= b;
+                if (map.Data[i] == '1') b *= A;
             }
+            return b;
+        }
+        static string[] Table_DecToBin_init()
+        {
+            table = new string[11];
+            table[0] = "0";
+            table[1] = "1";
+            table[2] = "10";
+            table[3] = "11";
+            table[4] = "100";
+            table[5] = "101";
+            table[6] = "110";
+            table[7] = "111";
+            table[8] = "1000";
+            table[9] = "1001";
+            table[10] = "1010";
+            return table;
         }
     }
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine((1 + new BigInt(100) + 5).ToString());
             while (true)
             {
-                BigInt a = new BigInt(Console.ReadLine());
-                //BigInt b = new BigInt(Console.ReadLine(), 2);
-                a = BigInt.DecToBin(a);
-                
+                Console.WriteLine(BigInt.DecToBin(new BigInt(Console.ReadLine(), 10)).ToString());
             }
 
 
