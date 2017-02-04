@@ -12,35 +12,83 @@ namespace BigInteger
         {
             List<T> Data = DataIn.ToList();
             List<T> run = new List<T>();
-            int N = Data.Count;
-            int minRun = 32;
+            int N = Data.Count, minRun = 32, L;
             //add log(N/32) to improve evenness of arrays
+            List<Tuple<int, int>> map = new List<Tuple<int, int>>();
             int n = 0;
-            while(true)
+            while(n != N)
             {
-                if (N - n < minRun) run = Data.GetRange(n, N - n);
-                else run = Data.GetRange(n, minRun);
-                n += minRun;
-                for (int i = 0; i < run.Count; i++)
+                int peak;
+                for (peak = 0; peak < N - n - 1; peak++)
                 {
-                    if (i == 0 || run[i].CompareTo(run[i - 1]) > 0) continue;
-                    for(int j = 0; j < i; j++)
+                    if (peak == 0 || Data[n + peak].CompareTo(Data[n + peak - 1]) > 0) continue;
+                    break;
+                }
+                if (N - (n + peak) < minRun || N - (n + minRun) < minRun)
+                {
+                    run = Data.GetRange(n, N - n);
+                    n = N;
+                }
+                else
+                {
+                    if (peak >= minRun)
                     {
-                        if (run[j].CompareTo(run[i]) < 0) continue;
-                        T buff = run[i];
-                        for (int k = i; k > j; k--)
-                        {
-                            run[k] = run[k-1];
-                        }
-                        run[j] = buff;
-                        break;
+                        run = Data.GetRange(n, peak);
+                        n += peak;
+                        continue;
+                    }
+                    else
+                    {
+                        run = Data.GetRange(n, minRun);
+                        n += minRun;
                     }
                 }
-
-                break;//1 round
+                map.Add(new Tuple<int, int>(n, run.Count));
+                for (; peak < run.Count; peak++)
+                {
+                    int Stage;
+                    for (Stage = 0; Stage < peak; Stage++)
+                    {
+                        if (run[Stage].CompareTo(run[peak]) < 0) continue;
+                        break;
+                    }
+                    T buff = run[peak];
+                    for (int wrongStage = peak; wrongStage > Stage; wrongStage--)
+                    {
+                        run[wrongStage] = run[wrongStage - 1];
+                    }
+                    run[Stage] = buff;
+                }
+                for (int i = n - run.Count; i < n; i++)
+                {
+                    Data[i] = run[i];//opt!!!
+                }
             }
-            
-            return run;
+            Stack<Tuple<int, int>> Addr_Len = new Stack<Tuple<int, int>>();
+            while (true) {
+                int i = 0;
+                Addr_Len.Push(map[0]);
+                if (map[0].Item1 > map[1].Item1 + map[2].Item1 && map[1].Item1 > map[2].Item1) {
+                    continue;
+                }
+                else
+                {
+                    if (x < y) {
+                        Merge(ref Data, map[0].Item1, map[0].Item2, map[1].Item1, map[1].Item2);
+                        x = x + y;
+                        y = z;
+                        z = sizes.Dequeue();
+                        my = mz;
+                        mz = map.Dequeue();
+                    }
+                    else Merge(ref Data, map.Dequeue(), y, , z);
+                }
+            }
+            return Data;
+        }
+        static void Merge(ref List<T> Data, int i1, int c1, int i2, int c2)
+        {
+
         }
     }
 }

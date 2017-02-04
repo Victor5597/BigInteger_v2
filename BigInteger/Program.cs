@@ -10,19 +10,20 @@ namespace BigInteger
     {
         static void Main(string[] args)
         {
-            List<BigInt> l = new List<BigInt>();
-            l.Add(new BigInt(4));
-            l.Add(new BigInt(2));
-            l.Add(new BigInt(3));
-            l = TimSort<BigInt>.TSort(l).ToList();
+            List<double> l = new List<double>();
+            l.Add(10);
+            l.Add(-3);
+            l.Add(5);
+            for (int i = 0; i < 25; i++)
+            {
+                l.Add(Math.Sin(i));
+            }
+            l = TimSort<double>.TSort(l).ToList();
             for (int i = 0; i < l.Count; i++)
             {
-                Console.Write(l[i].ToString() + " ");
+                Console.WriteLine(l[i].ToString() + " ");
             }
-            while (true)
-            {
-                //Console.WriteLine(BigInt.DecToBin(new BigInt(Console.ReadLine(), 10)).ToString());
-            }
+            Console.ReadKey();
 
 
         }
