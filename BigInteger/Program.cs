@@ -11,17 +11,16 @@ namespace BigInteger
         static void Main(string[] args)
         {
             List<double> l = new List<double>();
-            l.Add(10);
-            l.Add(-3);
-            l.Add(5);
+            List<BigInt> b = new List<BigInt>();
+            Random r = new Random();
             for (int i = 0; i < 25; i++)
             {
-                l.Add(Math.Sin(i));
+                b.Add(new BigInt(r.Next()));
             }
-            l = TimSort<double>.TSort(l).ToList();
-            for (int i = 0; i < l.Count; i++)
+            b = TimSort<BigInt>.TSort(b).ToList();
+            for (int i = 0; i < b.Count; i++)
             {
-                Console.WriteLine(l[i].ToString() + " ");
+                Console.WriteLine(b[i].ToString() + "\t" );
             }
             Console.ReadKey();
 
