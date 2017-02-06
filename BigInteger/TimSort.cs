@@ -14,7 +14,6 @@ namespace BigInteger
             Stack<Tuple<int, int>> map = RunSplitter(ref Data);
             MergeAll(ref Data, ref map);
             return Data;
-            
         }
         static Stack<Tuple<int,int>> RunSplitter(ref List<T> Data)
         {
@@ -49,8 +48,7 @@ namespace BigInteger
             //add log(N/32) to improve evenness of arrays
             for (max = 0; max < Data.Count - n - 1; max++)
             {
-                if (max == 0 || Data[n + max].CompareTo(Data[n + max - 1]) > 0) continue;
-                break;
+                if (max != 0 && Data[n + max].CompareTo(Data[n + max - 1]) < 0) break;
             }
             int RunCount;
             if (Data.Count - (n + max) < minRun || Data.Count - (n + minRun) < minRun)
@@ -59,14 +57,8 @@ namespace BigInteger
             }
             else
             {
-                if (max >= minRun)
-                {
-                    RunCount = max;
-                }
-                else
-                {
-                    RunCount = minRun;
-                }
+                if (max > minRun) RunCount = max;
+                else RunCount = minRun;
             }
             map.Push(new Tuple<int, int>(n, RunCount));
             return max;
@@ -76,9 +68,7 @@ namespace BigInteger
             Stack<Tuple<int, int>> stack = new Stack<Tuple<int, int>>();
             if (map.Count >= 3)
             {
-                Tuple<int, int> x = map.Pop();
-                Tuple<int, int> y = map.Pop();
-                Tuple<int, int> z = map.Pop();
+                Tuple<int, int> x = map.Pop(), y = map.Pop(), z = map.Pop();
                 while (true)
                 {
                     if (x.Item1 > y.Item1 + z.Item1 && y.Item1 > z.Item1)
@@ -89,10 +79,7 @@ namespace BigInteger
                     }
                     else
                     {
-                        if (x.Item2 > z.Item2)
-                        {
-                            y = Merge(ref Data, z, y);
-                        }
+                        if (x.Item2 > z.Item2) y = Merge(ref Data, z, y);
                         else
                         {
                             x = Merge(ref Data, y, x);
@@ -122,14 +109,14 @@ namespace BigInteger
         static Tuple<int, int> Merge(ref List<T> Data, Tuple<int,int> run1, Tuple<int,int> run2)
         {
             bool FromLeftMerge;
+            int i, si, ti;
             FromLeftMerge = (run1.Item2 > run2.Item2) ? false : true;
             Tuple<int, int> tempInfo = FromLeftMerge ? run1 : run2;
             Tuple<int, int> secInfo = FromLeftMerge ? run2 : run1;
-            T[] tempArr = new T[tempInfo.Item2];
-            Data.CopyTo(tempInfo.Item1, tempArr, 0, tempInfo.Item2);//Why not "ref tempArr"?
-            int i, si, ti;
             ti = i = FromLeftMerge ? 0 : tempInfo.Item2 - 1;
             si = FromLeftMerge ? 0 : secInfo.Item2 - 1;
+            T[] tempArr = new T[tempInfo.Item2];
+            Data.CopyTo(tempInfo.Item1, tempArr, 0, tempInfo.Item2);//Why not "ref tempArr"?
             while(true)
             {
                 if (ti >= tempArr.Length || si == secInfo.Item2 || ti < 0 || si < 0) break;
@@ -144,7 +131,7 @@ namespace BigInteger
                 while (i < tempInfo.Item2 + secInfo.Item2 && i >= -secInfo.Item2)
                 {
                     if (FromLeftMerge) Data[tempInfo.Item1 + i++] = tempArr[ti++];
-                    else Data[tempInfo.Item1 + i--] = tempArr[tempInfo.Item2 - 1 - ti--];
+                    else Data[tempInfo.Item1 + i--] = tempArr[ti--];
                 }
             }
             return new Tuple<int, int>(run1.Item1, run1.Item2 + run2.Item2);

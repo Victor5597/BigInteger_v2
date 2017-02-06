@@ -17,10 +17,15 @@ namespace BigInteger
             {
                 b.Add(new BigInt(r.Next()));
             }
-            b = TimSort<BigInt>.TSort(b).ToList();
-            for (int i = 0; i < b.Count; i++)
+            for (int i = 0; i < 25; i++)
             {
-                Console.WriteLine(b[i].ToString() + "\t" );
+                l.Add(Math.Sin(i + 0.5));
+            }
+            //b = TimSort<BigInt>.TSort(b).ToList();
+            l = TimSort<double>.TSort(l).ToList();
+            for (int i = 0; i < l.Count; i++)
+            {
+                Console.WriteLine(l[i].ToString() + "\t" );
             }
             Console.ReadKey();
 
